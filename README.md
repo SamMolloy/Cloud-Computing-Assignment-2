@@ -19,6 +19,8 @@ python curls.py
 
 Enter a the number corresponding to the menu command that you wish to run.
 
+External IP used from VM: 35.195.34.113 
+
 Youtube Demo of App:
 
 
