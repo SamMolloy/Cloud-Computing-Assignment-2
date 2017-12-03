@@ -31,7 +31,7 @@ DELETE /images/<id>                 Delete a specific image
 DELETE /images                      Delete all images
 
 """
-
+#method to list all containers
 @app.route('/containers', methods=['GET'])
 def containers_index():
     """
@@ -41,17 +41,18 @@ def containers_index():
     curl -s -X GET -H 'Accept: application/json' http://localhost:8080/containers?state=running | python -mjson.tool
 
     """
+    #lists the running containers
     if request.args.get('state') == 'running': 
         output = docker('ps')
         resp = json.dumps(docker_ps_to_array(output))
-         
+    #lists the inactive containers
     else:
         output = docker('ps', '-a')
         resp = json.dumps(docker_ps_to_array(output))
 
-    #resp = ''
     return Response(response=resp, mimetype="application/json")
 
+#method to list all the images
 @app.route('/images', methods=['GET'])
 def images_index():
     """
@@ -59,62 +60,72 @@ def images_index():
     
     Complete the code below generating a valid response. 
     """
+    #sets the docker command to view all images 
     output = docker('images', '-a') 
     resp =  json.dumps(docker_images_to_array(output))
     return Response(response=resp, mimetype="application/json")
 
+#Method to get a specific container by id
 @app.route('/containers/<id>', methods=['GET'])
 def containers_show(id):
     """
     Inspect specific container
 
     """
+    #sets the out put to the docker command to inspect a container by id
     output = docker('inspect', id)
     resp = output
 
     return Response(response=resp, mimetype="application/json")
 
-
+#method to get a containers logs
 @app.route('/containers/<id>/logs', methods=['GET'])
 def containers_log(id):
     """
     Dump specific container logs
 
     """
+   #sets the output to the docker command to inspect a containers logs
     output = docker('logs', id)
     resp =  output
     return Response(response=resp, mimetype="application/json")
 
+#method to delete a specific image by id
 @app.route('/images/<id>', methods=['DELETE'])
 def images_remove(id):
     """
     Delete a specific image
        """
+    #docker command to force remove an image
     docker ('rmi', '-f', id)
     resp = '{"id": "%s"}' % id
     return Response(response=resp, mimetype="application/json")
 
+#method to delete a specific container by id
 @app.route('/containers/<id>', methods=['DELETE'])
 def containers_remove(id):
     """
     Delete a specific container - must be already stopped/killed
 
     """
+   #docker command to force remove a container
     docker('rm','-f',  id)
     resp = '{"id": "%s"}' % id
     return Response(response=resp, mimetype="application/json")
 
+#method to delete all containers
 @app.route('/containers', methods=['DELETE'])
 def containers_remove_all():
     """
     Force remove all containers - dangrous!
 
     """
+    #creates an array and reads all of the containers into it
     containers = docker('ps', '-a')
     containerArray = docker_ps_to_array(containers)
 
     removedContainers = []
-
+   #for loop to read through the array of containers and run the docker rm command on each container by id
     for container in containerArray:
 
         if container["name"] != appName:
@@ -126,17 +137,18 @@ def containers_remove_all():
 
     resp = json.dumps(removedContainers)
     return Response(response=resp, mimetype="application/json")
- 
+ #method to delete all images
 @app.route('/images', methods=['DELETE'])
 def images_remove_all():
     """
     Force remove all images - dangrous!
     """
+    #creates an array and reads all of the images into it 
     images = docker("images")
     imageArray = docker_images_to_array(images)
   
     removedImages = []
-    
+    #for loop to go through the array and force remove all of the images in it by id
     for image in imageArray:
         if image["name"] != appName:
             id=image["id"]
@@ -147,7 +159,7 @@ def images_remove_all():
     resp = json.dumps(removedImages)
     return Response(response=resp, mimetype="application/json")
 
-        
+#Method to post or create a new container
 @app.route('/containers', methods=['POST'])
 def containers_create():
     """
@@ -156,13 +168,14 @@ def containers_create():
     curl -X POST -H 'Content-Type: application/json' http://localhost:8080/containers -d '{"image$
     curl -X POST -H 'Content-Type: application/json' http://localhost:8080/containers -d '{"image$
     """
+   #uses the given image id to make a docker command to create a container using that image
     body = request.get_json(force=True)
     image = body['image']
     args = ('run', '-d')
     id = docker(*(args + (image,)))[0:12]
     return Response(response='{"id": "%s"}' % id, mimetype="application/json")
 
-
+#method to post or create a new image
 @app.route('/images', methods=['POST'])
 def images_create():
     """
@@ -170,14 +183,17 @@ def images_create():
 
     curl -H 'Accept: application/json' -F file=@Dockerfile http://localhost:8080/images
     """
+   #gets the dockerfile needed to create an image
     dockerfile = request.files['file']
     dockerfile.save ('Dockerfile')
+   #command to create the image
     docker ('build', '-t', 'test', '.')
     i = docker_images_to_array(docker('images'))
 
     resp = '{"id": "%s"}' % i[0]['id']
     return Response(response=resp, mimetype="application/json")
 
+#method to patch a specific container
 @app.route('/containers/<id>', methods=['PATCH'])
 def containers_update(id):
     """
@@ -185,6 +201,7 @@ def containers_update(id):
     curl -X PATCH -H 'Content-Type: application/json' http://localhost:8080/containers/b6cd8ea512$
     curl -X PATCH -H 'Content-Type: application/json' http://localhost:8080/containers/b6cd8ea512$
     """
+   #checks if a container is running and if it is it restarts it
     body = request.get_json(force=True)
     try:
         state = body['state']
@@ -195,7 +212,7 @@ def containers_update(id):
     resp = '{"id": "%s"}' % id
     return Response(response=resp, mimetype="application/json")
 
-
+#method to patch an image
 @app.route('/images/<id>', methods=['PATCH'])
 def images_update(id):
     """
@@ -204,6 +221,7 @@ def images_update(id):
     curl -s -X PATCH -H 'Content-Type: application/json' http://localhost:8080/images/7f2619ed176$
 
     """
+   #adds or changes the tag of an image
     body = request.get_json(force=True)
     tag = body['tag']
     docker('tag', id, tag)
