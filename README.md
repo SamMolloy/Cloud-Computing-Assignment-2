@@ -21,6 +21,8 @@ Enter a the number corresponding to the menu command that you wish to run.
 
 External IP used from VM: 35.195.34.113 
 
+Note: Since recording the youtube demo of the app i have fixed the issue with PATCH Container in the curls.py file. It was a simple mislabelling error and the function now works.
+
 Youtube Demo of App:
 
 
